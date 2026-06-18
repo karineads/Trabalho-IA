@@ -1,145 +1,133 @@
-# Chatbot WhatsApp para Agendamento de Eventos
+# Chatbot Inteligente para Agendamento de Compromissos
+
+## Sobre o Projeto
+
+Este projeto consiste no desenvolvimento de um chatbot inteligente para o Telegram capaz de auxiliar usuários no gerenciamento de compromissos por meio de linguagem natural.
+
+O sistema utiliza Inteligência Artificial para interpretar mensagens enviadas pelo usuário, identificar sua intenção e realizar operações de cadastro, consulta e cancelamento de compromissos.
+
+A aplicação foi desenvolvida utilizando Python, FastAPI, Flask, PostgreSQL e a API da Groq, proporcionando uma comunicação simples e intuitiva através do Telegram.
 
 
-Este projeto tem como objetivo o desenvolvimento de um chatbot integrado ao WhatsApp, capaz de realizar o agendamento automático de eventos por meio de processamento de linguagem natural (NLP). O sistema permite que usuários interajam de forma intuitiva, utilizando linguagem natural para criar, consultar e cancelar compromissos.
+## Objetivos
 
-O projeto foi desenvolvido como parte de um trabalho acadêmico na área de Inteligência Artificial, demonstrando a aplicação prática de modelos de linguagem, integração de APIs e manipulação de banco de dados.
+O projeto tem como objetivo desenvolver um assistente virtual capaz de:
 
-
-## Objetivo
-Criar um sistema capaz de interpretar mensagens em linguagem natural e convertê-las em ações estruturadas de agendamento, oferecendo uma experiência automatizada e eficiente para o usuário.
-
-
-## Arquitetura do Sistema
-
-O sistema é composto por diferentes camadas que se comunicam entre si:
-
-Usuário (WhatsApp)
-→ Evolution API (integração com WhatsApp)
-→ Flask (Webhook)
-→ FastAPI (Backend principal)
-→ Modelo de IA (Groq – LLM)
-→ PostgreSQL (Banco de dados)
-→ Retorno da resposta ao usuário
-
-## Funcionamento
-
-O usuário envia uma mensagem pelo WhatsApp, por exemplo:
-
-“Quero marcar uma reunião sexta às 14h na sala 3”
-
-O sistema realiza os seguintes passos:
-
-1. Recebe a mensagem via webhook.
-2. Envia a mensagem ao backend.
-3. O modelo de IA interpreta a intenção e extrai os dados relevantes.
-4. O backend processa a lógica de negócio.
-5. O banco de dados é consultado ou atualizado.
-6. Uma resposta é gerada e enviada ao usuário.
-
-
-## Processamento de Linguagem Natural (NLP)
-
-A aplicação utiliza um modelo de linguagem para:
-
-* Identificar a intenção do usuário (marcar, consultar ou cancelar)
-* Extrair entidades relevantes (evento, data, hora e local)
-* Lidar com linguagem natural e expressões informais
-
-Exemplo de interpretação:
-
-Entrada do usuário:
-“Marca reunião amanhã às 14h na sala 3”
-
-Saída estruturada:
-intencao: marcar
-evento: reunião
-data: 08/05/2026
-hora: 14:00
-local: sala 3
+* Interpretar mensagens escritas em linguagem natural;
+* Identificar a intenção do usuário;
+* Agendar compromissos;
+* Consultar compromissos cadastrados;
+* Cancelar compromissos existentes;
+* Armazenar o histórico de conversas para fornecer contexto durante as interações.
 
 
 ## Tecnologias Utilizadas
 
-* Linguagem: Python
-* Backend: FastAPI
-* Webhook: Flask
-* Integração com WhatsApp: Evolution API
-* Inteligência Artificial: Groq (modelo LLM)
-* Banco de Dados: PostgreSQL
-* Ferramenta de teste: ngrok
+* Python 3
+* FastAPI
+* Flask
+* PostgreSQL
+* Groq API (Llama 3.3 70B Versatile)
+* Telegram Bot API
+* Pydantic
+* Requests
+* Psycopg2
+* Python Dotenv
 
 ## Estrutura do Projeto
 
-app.py
-Responsável por receber as mensagens do WhatsApp através do webhook e encaminhá-las ao backend.
-
-main.py
-Contém a lógica principal da aplicação, incluindo integração com IA, regras de negócio e comunicação com o banco de dados.
-
-database.py
-Implementa as operações relacionadas ao banco de dados, como criação de tabelas, inserção, consulta e atualização de eventos.
-
-.env
-Arquivo de configuração contendo as variáveis de ambiente necessárias para execução do sistema.
-
-
-## Configuração do Ambiente
-
-1. Clonar o repositório
-2. Criar e ativar ambiente virtual
-3. Instalar dependências
-4. Configurar variáveis de ambiente (API keys e conexão com banco)
-5. Iniciar o backend FastAPI
-6. Iniciar o webhook Flask
-7. Expor o serviço com ngrok
+```text
+Projeto/
+│
+├── app.py
+├── main.py
+├── database.py
+├── requirements.txt
+├── requirements_fastapi.txt
+├── .env
+└── README.md
+```
 
 
-## Banco de Dados
+## Descrição dos Arquivos
 
-A tabela principal do sistema armazena os eventos agendados com os seguintes campos:
+### app.py
 
-* id
-* evento
-* data
-* hora
-* local
-* status
-
-O sistema implementa validação para evitar conflitos de agendamento, impedindo a criação de eventos duplicados no mesmo horário e local.
+Responsável por receber as mensagens enviadas pelo Telegram através do webhook e encaminhá-las para a API principal.
 
 
-## Funcionalidades
+### main.py
 
-* Agendamento de eventos via linguagem natural
-* Consulta de compromissos por data
-* Cancelamento de eventos
-* Tratamento de mensagens incompletas
-* Conversão automática de formatos de data
+Contém toda a lógica da aplicação.
 
-## Formato de Datas
+É responsável por:
 
-O sistema foi adaptado para o padrão brasileiro:
+* receber as mensagens;
+* recuperar o histórico do usuário;
+* enviar a mensagem para a IA;
+* interpretar a resposta;
+* realizar operações no banco de dados;
+* enviar a resposta ao usuário.
 
-Entrada do usuário: DD/MM/AAAA
-Armazenamento interno: YYYY-MM-DD
-Saída exibida: DD/MM/AAAA
+### database.py
 
-Essa abordagem garante compatibilidade com o banco de dados e uma melhor experiência para o usuário.
+Responsável pelas operações de banco de dados, incluindo:
+
+* criação das tabelas;
+* armazenamento do histórico;
+* cadastro de eventos;
+* consulta de eventos;
+* cancelamento de eventos.
+
+## Funcionamento
+
+O chatbot segue o seguinte fluxo:
+
+1. O usuário envia uma mensagem pelo Telegram.
+2. O webhook recebe essa mensagem.
+3. A mensagem é enviada para a API desenvolvida em FastAPI.
+4. O histórico da conversa é recuperado.
+5. A IA interpreta a intenção do usuário.
+6. O sistema executa a operação correspondente.
+7. A resposta é enviada novamente ao Telegram.
+
+## Exemplos de Uso
+
+### Agendar
+
+> Marque uma reunião amanhã às 14h na sala de reuniões.
 
 
-## Regras
+### Consultar
 
-* Não permite agendamento duplicado no mesmo horário e local
-* Solicita informações adicionais quando a mensagem estiver incompleta
-* Retorna mensagens claras em caso de erro ou conflito
+> Quais compromissos tenho amanhã?
 
 
-## O projeto demonstra a aplicação prática dos seguintes conceitos:
+### Cancelar
 
-* Processamento de linguagem natural
-* Integração de APIs
-* Desenvolvimento de sistemas distribuídos
-* Persistência de dados
-* Construção de chatbot inteligente
+> Cancelar a reunião de amanhã às 14h.
 
+
+## Tratamento de Erros
+
+O sistema realiza verificações para:
+
+* mensagens inválidas;
+* datas em formato incorreto;
+* ausência de informações obrigatórias;
+* conflitos de horários;
+* falhas de comunicação com a IA.
+
+
+## Possíveis Melhorias
+
+* Alteração de compromissos existentes;
+* Definição de duração do evento;
+* Envio de lembretes automáticos;
+* Interface Web para gerenciamento;
+* Suporte a múltiplos idiomas;
+* Melhor tratamento de exceções e logs.
+
+## Licença
+
+Projeto desenvolvido exclusivamente para fins acadêmicos.
