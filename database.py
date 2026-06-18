@@ -1,16 +1,12 @@
 import os
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
 def get_conn():
-    return psycopg2.connect(
-        os.getenv("DATABASE_URL"),
-        cursor_factory=RealDictCursor
-    )
+    return psycopg2.connect(os.getenv("DATABASE_URL"))
 
 
 def init_db():
@@ -23,8 +19,18 @@ def init_db():
             evento TEXT NOT NULL,
             data DATE NOT NULL,
             hora TIME NOT NULL,
-            local TEXT,
+            local TEXT NOT NULL,
             status TEXT DEFAULT 'confirmado',
+            criado_em TIMESTAMP DEFAULT NOW()
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS mensagens (
+            id SERIAL PRIMARY KEY,
+            chat_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            conteudo TEXT NOT NULL,
             criado_em TIMESTAMP DEFAULT NOW()
         );
     """)
@@ -34,40 +40,79 @@ def init_db():
     conn.close()
 
 
-def horario_disponivel(data: str, hora: str, local: str) -> bool:
+def salvar_mensagem(chat_id: str, role: str, conteudo: str):
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("""
-        SELECT id FROM eventos
-        WHERE data = %s
-        AND hora = %s
-        AND local = %s
-        AND status = 'confirmado'
-    """, (data, hora, local))
+    cur.execute(
+        """
+        INSERT INTO mensagens (chat_id, role, conteudo)
+        VALUES (%s, %s, %s)
+        """,
+        (chat_id, role, conteudo)
+    )
 
-    ocupado = cur.fetchone() is not None
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def buscar_historico(chat_id: str, limite: int = 10):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT role, conteudo
+        FROM mensagens
+        WHERE chat_id = %s
+        ORDER BY criado_em DESC
+        LIMIT %s
+        """,
+        (chat_id, limite)
+    )
+
+    rows = cur.fetchall()
 
     cur.close()
     conn.close()
 
-    return not ocupado
+    return [{"role": role, "content": conteudo} for role, conteudo in reversed(rows)]
 
 
 def salvar_evento(evento: str, data: str, hora: str, local: str):
-    if not horario_disponivel(data, hora, local):
-        return None
-
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("""
+    cur.execute(
+        """
+        SELECT id
+        FROM eventos
+        WHERE data = %s
+          AND hora = %s
+          AND local = %s
+          AND status = 'confirmado'
+        """,
+        (data, hora, local)
+    )
+
+    conflito = cur.fetchone()
+
+    if conflito:
+        cur.close()
+        conn.close()
+        return None
+
+    cur.execute(
+        """
         INSERT INTO eventos (evento, data, hora, local)
         VALUES (%s, %s, %s, %s)
         RETURNING id
-    """, (evento, data, hora, local))
+        """,
+        (evento, data, hora, local)
+    )
 
-    evento_id = cur.fetchone()["id"]
+    evento_id = cur.fetchone()[0]
 
     conn.commit()
     cur.close()
@@ -80,18 +125,33 @@ def listar_eventos_do_dia(data: str):
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("""
+    cur.execute(
+        """
         SELECT id, evento, data, hora, local, status
         FROM eventos
         WHERE data = %s
-        AND status = 'confirmado'
+          AND status = 'confirmado'
         ORDER BY hora
-    """, (data,))
+        """,
+        (data,)
+    )
 
-    eventos = cur.fetchall()
+    rows = cur.fetchall()
 
     cur.close()
     conn.close()
+
+    eventos = []
+
+    for row in rows:
+        eventos.append({
+            "id": row[0],
+            "evento": row[1],
+            "data": str(row[2]),
+            "hora": str(row[3])[:5],
+            "local": row[4],
+            "status": row[5]
+        })
 
     return eventos
 
@@ -101,27 +161,35 @@ def cancelar_evento(data: str, hora: str, local: str = None):
     cur = conn.cursor()
 
     if local:
-        cur.execute("""
+        cur.execute(
+            """
             UPDATE eventos
             SET status = 'cancelado'
             WHERE data = %s
-            AND hora = %s
-            AND local = %s
-            AND status = 'confirmado'
-        """, (data, hora, local))
+              AND hora = %s
+              AND local = %s
+              AND status = 'confirmado'
+            RETURNING id
+            """,
+            (data, hora, local)
+        )
     else:
-        cur.execute("""
+        cur.execute(
+            """
             UPDATE eventos
             SET status = 'cancelado'
             WHERE data = %s
-            AND hora = %s
-            AND status = 'confirmado'
-        """, (data, hora))
+              AND hora = %s
+              AND status = 'confirmado'
+            RETURNING id
+            """,
+            (data, hora)
+        )
 
-    alterado = cur.rowcount > 0
+    cancelado = cur.fetchone()
 
     conn.commit()
     cur.close()
     conn.close()
 
-    return alterado
+    return cancelado is not None
