@@ -128,6 +128,16 @@ O sistema realiza verificações para:
 * Suporte a múltiplos idiomas;
 * Melhor tratamento de exceções e logs.
 
+## Equipe
+
+Hugo Martins 
+
+João Marcos
+
+Karine Araujo dos Santos
+
+Mariana Nascimento
+
 ## Licença
 
 Projeto desenvolvido exclusivamente para fins acadêmicos.
